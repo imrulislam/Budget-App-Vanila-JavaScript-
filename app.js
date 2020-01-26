@@ -13,7 +13,22 @@ var budgetController = (function () {
         this.id = id;
         this.description = description;
         this.value = value;
+        this.percentage = -1;
     }
+
+
+    Expense.prototype.calcPercentage = function (totalIncome) {
+        if (totalIncome > 0) {
+            this.percentage = Math.round((this.value / totalIncome) * 100);
+        } else {
+            this.percentage = -1;
+        }
+    }
+
+    Expense.prototype.getPercentage = function () {
+        return this.percentage;
+    }
+
 
     // Calculate the total of income or expense
     var calculateTotal = function (type) {
@@ -83,10 +98,24 @@ var budgetController = (function () {
             // Calculate the percentage
             if (data.totals.inc > 0) {
                 data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+                debugger
             } else {
                 data.percentage = -1;
             }
 
+        },
+        calculatePercentages: function () {
+
+            data.allItem.exp.forEach(function (current) {
+                current.calcPercentage(data.totals.inc);
+            });
+        },
+        getPercentages: function () {
+            var allPercentages = data.allItem.exp.map(function (cur) {
+                return cur.getPercentage();
+            });
+
+            return allPercentages;
         },
         getBudget: function () {
             return {
@@ -119,7 +148,8 @@ var UIController = (function () {
         incomeLable: '.budget__income--value',
         expenseLable: '.budget__expenses--value',
         percentageLable: '.budget__expenses--percentage',
-        container: '.container'
+        container: '.container',
+        itempercentageLable: '.item__percentage'
     }
 
 
@@ -177,6 +207,24 @@ var UIController = (function () {
                 document.querySelector(DomString.percentageLable).textContent = '-';
             }
         },
+
+        displayPercentages: function (percentages) {
+            var fields = document.querySelectorAll(DomString.itempercentageLable);
+
+            var nodeListForEach = function (list, callback) {
+                for (var i = 0; i < list.length; i++) {
+                    callback(list[i], i);
+                }
+            }
+
+            nodeListForEach(fields, function (current, index) {
+                if (percentages[index] > 0) {
+                    current.textContent = percentages[index] + '%';
+                } else {
+                    current.textContent = '--'
+                }
+            });
+        },
         getDomString: function () {
             return DomString
         }
@@ -218,10 +266,13 @@ var appController = (function (budgetCtrl, UICtrl) {
     var updatePercentages = function () {
 
         //Calculate Percentages
+        budgetCtrl.calculatePercentages();
 
         //Read percentage from the budget controller
-
+        var percentages = budgetCtrl.getPercentages();
+        debugger
         // Update the user interface
+        UICtrl.displayPercentages(percentages);
     }
 
 
